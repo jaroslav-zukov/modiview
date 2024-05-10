@@ -25,7 +25,9 @@ app = Dash(__name__)
 
 app.layout = html.Div([
     html.H1(children='Trying visualising stuff', style={'textAlign':'center'}),
-    dcc.Slider(1, read_count, 1, value=1, id='slider-selection', marks=None),
+    # dcc.Slider(1, read_count, 1, value=1, id='slider-selection', marks=None),
+    f"Enter the read number (1-{read_count}): ",
+    dcc.Input(id='range', type='number', min=1, max=read_count, step=1, style={'textAlign':'center', 'width': '5%'}, value=1),
     html.Div(id='slider-output-container'),
     dashbio.AlignmentChart(
         id='alignment-viewer',
@@ -43,14 +45,14 @@ app.layout = html.Div([
 
 @callback(
     Output('slider-output-container', 'children'),
-    Input('slider-selection', 'value'))
+    Input('range', 'value'))
 def update_output(value):
     return 'You have selected read number {} with read_id {}'.format(value, get_read_id(value))
 
 
 @callback(
     Output('alignment-viewer', 'data'),
-    Input('slider-selection', 'value'))
+    Input('range', 'value'))
 def update_alignment_chart(value):
     result = ""
     read_id = get_read_id(value)
