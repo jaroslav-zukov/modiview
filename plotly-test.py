@@ -1,6 +1,8 @@
 from dash import Dash, html, dcc, callback, Output, Input
 import pysam
 import dash_bio as dashbio
+import plotly.express as px
+import pandas as pd
 
 bamfile = pysam.AlignmentFile("calls.bam", "rb", check_sq=False)
 read_count = bamfile.count(until_eof=True)
@@ -38,7 +40,7 @@ app.layout = html.Div([
         step=1,
         style={'textAlign': 'center', 'width': '5%'},
         value=1),
-    html.Div(id='slider-output-container'),
+    html.Div(id='read-num-output-container'),
     dashbio.AlignmentChart(
         id='alignment-viewer',
         data=get_fasta_sequence(get_read_id(1)),
@@ -49,12 +51,17 @@ app.layout = html.Div([
         showconservation=False,
         showconsensus=False,
         showgap=False,
+        showid=False,
+        colorscale='nucleotide',
+        showlabel=False,
     ),
+    dcc.Graph(id='modifications-plot'),
+    html.Div(id='alignment-chart-width', style={'display': 'none'}),
 ])
 
 
 @callback(
-    Output('slider-output-container', 'children'),
+    Output('read-num-output-container', 'children'),
     Input('range', 'value'))
 def update_output(value):
     return 'You have selected read number {} with read_id {}'.format(value, get_read_id(value))
@@ -66,6 +73,34 @@ def update_output(value):
 def update_alignment_chart(value):
     read_id = get_read_id(value)
     return get_fasta_sequence(read_id)
+
+
+@callback(
+    Output('alignment-viewer', 'showgap'),
+    Input('alignment-viewer', 'eventDatum'))
+def update_alignment_chart(eventDatum):
+    # print(eventDatum)
+    return False
+
+
+@callback(
+    Output('modifications-plot', 'figure'),
+    Input('range', 'value'))
+def update_modifications_plot(value):
+    x_values = list(range(1, 257))
+    y_values = list(range(1, 257))
+
+    df = pd.DataFrame({
+        'x': x_values,
+        'y': y_values,
+        'color': y_values  # Use the y-values as the color
+    })
+
+    fig = px.bar(df, x='x', y='y', color='color',
+                 color_continuous_scale=['red', 'yellow', 'green'], height=300)
+    fig.update_layout(autosize=False, width=2605, coloraxis_showscale=False)
+
+    return fig
 
 
 if __name__ == '__main__':
