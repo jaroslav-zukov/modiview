@@ -149,25 +149,38 @@ def update_alignment_chart(eventDatum, value):
 
 @callback(
     Output('modifications-plot', 'figure'),
+    Input('alignment-viewer', 'eventDatum'),
     Input('range', 'value'))
-def update_modifications_plot(value):
-    methylation_positions = get_modifications(value)['C+m?']
-    result = np.zeros(256)
-    for position, probability in methylation_positions:
-        if position < 256:
-            result[position] += probability
+def update_modifications_plot(eventDatum, read_number):
+    read = get_read(read_number)
+    sequence = read.query_sequence
 
-    x_values = list(range(1, 257))
-    y_values = result.tolist()
+    start = 0
+    end = 256
+    if eventDatum:
+        parsed_event = json.loads(eventDatum)
+        if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
+            print(eventDatum)
+            start = math.ceil(parsed_event['xStart'])
+            end = math.floor(parsed_event['xEnd'])
+        else:
+            return no_update
+
+    length = end - start
+    methylation_positions = get_modifications(read_number)['C+m?']
+    result = np.zeros(max(len(sequence), 256))
+    for position, probability in methylation_positions:
+        result[position] += probability
+
+    x_values = list(range(start + 1, end + 1))
+    y_values = result.tolist()[start:end]
 
     df = pd.DataFrame({
         'x': x_values,
         'y': y_values,
     })
 
-    fig = px.bar(df, x='x', y='y',
-                 color_continuous_scale=[(0, 'red'), (0.5, 'yellow'), (1, 'green')],
-                 height=300)
+    fig = px.line(df, x='x', y='y', height=300)
     fig.update_layout(autosize=False, width=2605, coloraxis_showscale=False, yaxis=dict(range=[0, 1]))
 
     return fig
