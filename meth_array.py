@@ -24,7 +24,6 @@ for segment in segments:
     # Convert Phred scores to error probabilities
     error_probabilities = [10 ** (-q / 10) for q in probabilities]
 
-    # Adjust positions based on the encoding scheme
     for i in range(1, len(positions)):
         positions[i] = positions[i-1] + 1 + positions[i]
 
