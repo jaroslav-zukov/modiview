@@ -1,10 +1,13 @@
-from dash import Dash, html, dcc, callback, Output, Input
+import math
+
+from dash import Dash, html, dcc, callback, Output, Input, no_update
 import pysam
 import dash_bio as dashbio
 import plotly.express as px
 import pandas as pd
 from collections import OrderedDict
 import numpy as np
+import json
 
 bamfile = pysam.AlignmentFile("calls.bam", "rb", check_sq=False)
 read_count = bamfile.count(until_eof=True)
@@ -128,11 +131,20 @@ def update_alignment_chart(value):
 
 
 @callback(
-    Output('alignment-viewer', 'showgap'),
-    Input('alignment-viewer', 'eventDatum'))
-def update_alignment_chart(eventDatum):
-    # print(eventDatum)
-    return False
+    Output('alignment-viewer', 'showlabel'),
+    Input('alignment-viewer', 'eventDatum'),
+    Input('range', 'value'))
+def update_alignment_chart(eventDatum, value):
+    if eventDatum:
+        parsed_event = json.loads(eventDatum)
+        if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
+            read = get_read(value)
+            sequence = read.query_sequence
+            start = sequence[math.ceil(parsed_event['xStart'])]
+            end = sequence[math.floor(parsed_event['xEnd'])]
+            print(f'{start} - {end}')
+
+    return no_update
 
 
 @callback(
@@ -151,11 +163,9 @@ def update_modifications_plot(value):
     df = pd.DataFrame({
         'x': x_values,
         'y': y_values,
-        # 'color': y_values  # Use the y-values as the color
     })
 
     fig = px.bar(df, x='x', y='y',
-                 # color='blue',
                  color_continuous_scale=[(0, 'red'), (0.5, 'yellow'), (1, 'green')],
                  height=300)
     fig.update_layout(autosize=False, width=2605, coloraxis_showscale=False, yaxis=dict(range=[0, 1]))
