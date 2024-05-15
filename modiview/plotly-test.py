@@ -31,7 +31,7 @@ app.layout = html.Div([
     html.H1(children='Trying visualising stuff', style={'textAlign': 'center'}),
     f"Enter the read number (1-{read_count}): ",
     dcc.Input(
-        id='range',
+        id='read_number',
         type='number',
         min=1,
         max=read_count,
@@ -67,14 +67,20 @@ app.layout = html.Div([
 
 @callback(
     Output('zoom-range', 'data'),
-    Input('alignment-viewer', 'eventDatum'))
-def update_zoom_range(alignment_viewer_event):
+    Input('alignment-viewer', 'eventDatum'),
+    Input('read_number', 'value')
+)
+def update_zoom_range(alignment_viewer_event, read_number):
     if alignment_viewer_event is None:
         return dash.no_update
     parsed_event = json.loads(alignment_viewer_event)
     if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
         start = math.ceil(parsed_event['xStart'])
         end = math.floor(parsed_event['xEnd'])
+        read = bam_handler.get_read(read_number)
+        sequence = read.query_sequence
+        if start < 0 or end > max(len(sequence), 256):
+            return no_update
         return {'start': start, 'end': end}
     else:
         return dash.no_update
@@ -82,14 +88,14 @@ def update_zoom_range(alignment_viewer_event):
 
 @callback(
     Output('read-num-output-container', 'children'),
-    Input('range', 'value'))
+    Input('read_number', 'value'))
 def update_output(value):
     return 'You have selected read number {} with read_id {}'.format(value, bam_handler.get_read_id(value))
 
 
 @callback(
     Output('alignment-viewer', 'data'),
-    Input('range', 'value'))
+    Input('read_number', 'value'))
 def update_alignment_chart(value):
     return bam_handler.get_fasta_sequence(value)
 
@@ -97,7 +103,7 @@ def update_alignment_chart(value):
 @callback(
     Output('modifications-plot', 'figure'),
     Input('zoom-range', 'data'),
-    Input('range', 'value'),
+    Input('read_number', 'value'),
     Input('mod_dropdown', 'value'),
 )
 def update_modifications_plot(zoom_range, read_number, mods_selected):
