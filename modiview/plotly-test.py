@@ -61,8 +61,23 @@ app.layout = html.Div([
         showlabel=False,
     ),
     dcc.Graph(id='modifications-plot'),
-    html.Div(id='alignment-chart-width', style={'display': 'none'}),
+    dcc.Store(id='zoom-range', data={'start': 0, 'end': 256}),
 ])
+
+
+@callback(
+    Output('zoom-range', 'data'),
+    Input('alignment-viewer', 'eventDatum'))
+def update_zoom_range(alignment_viewer_event):
+    if alignment_viewer_event is None:
+        return dash.no_update
+    parsed_event = json.loads(alignment_viewer_event)
+    if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
+        start = math.ceil(parsed_event['xStart'])
+        end = math.floor(parsed_event['xEnd'])
+        return {'start': start, 'end': end}
+    else:
+        return dash.no_update
 
 
 @callback(
@@ -81,27 +96,17 @@ def update_alignment_chart(value):
 
 @callback(
     Output('modifications-plot', 'figure'),
-    Input('alignment-viewer', 'eventDatum'),
+    Input('zoom-range', 'data'),
     Input('range', 'value'),
     Input('mod_dropdown', 'value'),
 )
-def update_modifications_plot(alignment_viewer_event, read_number, mods_selected):
+def update_modifications_plot(zoom_range, read_number, mods_selected):
     read = bam_handler.get_read(read_number)
     sequence = read.query_sequence
-    trigger_id = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
-    start = 0
-    end = 256
     nucleotides_shown = max(len(sequence), 256)
-    if trigger_id == 'alignment-viewer':
-        parsed_event = json.loads(alignment_viewer_event)
-        if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
-            start = math.ceil(parsed_event['xStart'])
-            end = math.floor(parsed_event['xEnd'])
-            if start < 0 or end > nucleotides_shown:
-                return no_update
-        else:
-            return no_update
+    start = zoom_range['start']
+    end = zoom_range['end']
 
     fig = go.Figure()
     mods = modifications.get_modifications(read)
