@@ -1,6 +1,5 @@
 import json
 import math
-from collections import OrderedDict
 
 import dash
 import dash_bio as dashbio
@@ -9,59 +8,13 @@ import pandas as pd
 import plotly.express as px
 from dash import Dash, html, dcc, callback, Output, Input, no_update
 
+import modifications
 from modiview.bam_handler import BAMFileHandler
 
 bam_handler = BAMFileHandler("/Users/jaroslav/Projects/modiview/calls.bam")
 
 read_count = bam_handler.get_read_count()
 initial_fasta_sequence = bam_handler.get_fasta_sequence(1)
-
-
-def get_modifications(read_number):
-    read = bam_handler.get_read(read_number)
-    sequence = read.query_sequence
-    c_positions = []
-    for i in range(len(sequence)):
-        if sequence[i] == 'C':
-            c_positions.append(i)
-
-    modifications = [e for e in read.get_tag("MM").split(";") if e]
-    modification_probabilities_encoded = read.get_tag("ML")
-    modification_probabilities = [i / 255 for i in modification_probabilities_encoded]
-
-    modification_relative_position_map = OrderedDict()
-
-    modification_count = 0
-    for modification in modifications:
-        parts = modification.split(",")
-        modification_type = parts[0]
-        positions = [int(p) for p in parts[1:]]
-        modification_count += len(positions)
-        modification_relative_position_map[modification_type] = positions
-
-    modification_position_error_map = {}
-
-    if modification_count == len(modification_probabilities):
-        counter = 0
-        for modification, relative_position in modification_relative_position_map.items():
-            absolute_c_positions = []
-            for i in range(len(relative_position)):
-                if i == 0:
-                    absolute_c_positions.append(relative_position[i])
-                else:
-                    absolute_c_positions.append(absolute_c_positions[i - 1] + 1 + relative_position[i])
-
-            absolute_positions = [c_positions[i] for i in absolute_c_positions]
-
-            modification_position_error_map[modification] = (
-                zip(
-                    absolute_positions,
-                    modification_probabilities[counter: len(absolute_positions)]
-                )
-            )
-
-    return modification_position_error_map
-
 
 app = Dash(__name__)
 
@@ -121,16 +74,19 @@ def update_modifications_plot(alignment_viewer_event, read_number):
 
     start = 0
     end = 256
+    nucleotides_shown = max(len(sequence), 256)
     if trigger_id == 'alignment-viewer':
         parsed_event = json.loads(alignment_viewer_event)
         if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
             start = math.ceil(parsed_event['xStart'])
             end = math.floor(parsed_event['xEnd'])
+            if start < 0 or end > nucleotides_shown:
+                return no_update
         else:
             return no_update
 
-    methylation_positions = get_modifications(read_number)['C+m?']
-    result = np.zeros(max(len(sequence), 256))
+    methylation_positions = modifications.get_modifications(read)['C+m?']
+    result = np.zeros(nucleotides_shown)
     for position, probability in methylation_positions:
         result[position] += probability
 
