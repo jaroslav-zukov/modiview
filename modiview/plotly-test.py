@@ -1,43 +1,24 @@
-import math
-
-from dash import Dash, html, dcc, callback, Output, Input, no_update
-import pysam
-import dash_bio as dashbio
-import plotly.express as px
-import pandas as pd
-from collections import OrderedDict
-import numpy as np
 import json
+import math
+from collections import OrderedDict
 
-bamfile = pysam.AlignmentFile("calls.bam", "rb", check_sq=False)
-read_count = bamfile.count(until_eof=True)
-bamfile.close()
+import dash
+import dash_bio as dashbio
+import numpy as np
+import pandas as pd
+import plotly.express as px
+from dash import Dash, html, dcc, callback, Output, Input, no_update
 
+from modiview.bam_handler import BAMFileHandler
 
-def get_read(read_number):
-    reads = pysam.AlignmentFile("calls.bam", "rb", check_sq=False)
-    counter = 0
-    for read in reads:
-        counter += 1
-        if counter == read_number:
-            return read
+bam_handler = BAMFileHandler("/Users/jaroslav/Projects/modiview/calls.bam")
 
-
-def get_read_id(read_number):
-    return get_read(read_number).query_name
-
-
-def get_fasta_sequence(read_id):
-    result = f">{read_id}\n"
-    fastafile = pysam.FastaFile("calls.fasta")
-    read = fastafile.fetch(read_id)
-    result += read
-
-    return result
+read_count = bam_handler.get_read_count()
+initial_fasta_sequence = bam_handler.get_fasta_sequence(1)
 
 
 def get_modifications(read_number):
-    read = get_read(read_number)
+    read = bam_handler.get_read(read_number)
     sequence = read.query_sequence
     c_positions = []
     for i in range(len(sequence)):
@@ -98,7 +79,7 @@ app.layout = html.Div([
     html.Div(id='read-num-output-container'),
     dashbio.AlignmentChart(
         id='alignment-viewer',
-        data=get_fasta_sequence(get_read_id(1)),
+        data=initial_fasta_sequence,
         height=200,
         tilewidth=10,
         tileheight=15,
@@ -119,54 +100,35 @@ app.layout = html.Div([
     Output('read-num-output-container', 'children'),
     Input('range', 'value'))
 def update_output(value):
-    return 'You have selected read number {} with read_id {}'.format(value, get_read_id(value))
+    return 'You have selected read number {} with read_id {}'.format(value, bam_handler.get_read_id(value))
 
 
 @callback(
     Output('alignment-viewer', 'data'),
     Input('range', 'value'))
 def update_alignment_chart(value):
-    read_id = get_read_id(value)
-    return get_fasta_sequence(read_id)
-
-
-@callback(
-    Output('alignment-viewer', 'showlabel'),
-    Input('alignment-viewer', 'eventDatum'),
-    Input('range', 'value'))
-def update_alignment_chart(eventDatum, value):
-    if eventDatum:
-        parsed_event = json.loads(eventDatum)
-        if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
-            read = get_read(value)
-            sequence = read.query_sequence
-            start = sequence[math.ceil(parsed_event['xStart'])]
-            end = sequence[math.floor(parsed_event['xEnd'])]
-            print(f'{start} - {end}')
-
-    return no_update
+    return bam_handler.get_fasta_sequence(value)
 
 
 @callback(
     Output('modifications-plot', 'figure'),
     Input('alignment-viewer', 'eventDatum'),
     Input('range', 'value'))
-def update_modifications_plot(eventDatum, read_number):
-    read = get_read(read_number)
+def update_modifications_plot(alignment_viewer_event, read_number):
+    read = bam_handler.get_read(read_number)
     sequence = read.query_sequence
+    trigger_id = dash.callback_context.triggered[0]['prop_id'].split('.')[0]
 
     start = 0
     end = 256
-    if eventDatum:
-        parsed_event = json.loads(eventDatum)
+    if trigger_id == 'alignment-viewer':
+        parsed_event = json.loads(alignment_viewer_event)
         if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
-            print(eventDatum)
             start = math.ceil(parsed_event['xStart'])
             end = math.floor(parsed_event['xEnd'])
         else:
             return no_update
 
-    length = end - start
     methylation_positions = get_modifications(read_number)['C+m?']
     result = np.zeros(max(len(sequence), 256))
     for position, probability in methylation_positions:
