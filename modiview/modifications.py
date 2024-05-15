@@ -8,7 +8,7 @@ def calculate_nucleotide_positions(read, nucleotide):
 
 
 def get_modification_relative_positions_map(read):
-    modifications = read.get_tag("MM").split(";")
+    modifications = [mod for mod in read.get_tag("MM").split(";") if mod]
     modification_relative_positions_map = {}
     for modification in modifications:
         parts = modification.split(",")
@@ -35,8 +35,8 @@ def get_modifications(read):
     modification_position_error_map = {}
     counter = 0
     for modification, relative_position in modification_relative_position_map.items():
-        c_positions = calculate_nucleotide_positions(read, 'C')
-        absolute_positions = calculate_absolute_modification_positions(relative_position, c_positions)
+        nucleotide_positions = calculate_nucleotide_positions(read, modification[0])
+        absolute_positions = calculate_absolute_modification_positions(relative_position, nucleotide_positions)
 
         modification_position_error_map[modification] = (
             zip(

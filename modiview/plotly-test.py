@@ -80,6 +80,7 @@ def update_modifications_plot(alignment_viewer_event, read_number):
         if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
             start = math.ceil(parsed_event['xStart'])
             end = math.floor(parsed_event['xEnd'])
+            # Just not to throw value out of range error
             if start < 0 or end > nucleotides_shown:
                 return no_update
         else:
