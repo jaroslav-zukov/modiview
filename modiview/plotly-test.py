@@ -28,7 +28,7 @@ initial_modifications_full = [modifications_dict[mod] for mod in initial_modific
 app = Dash(__name__)
 
 app.layout = html.Div([
-    html.H1(children='Trying visualising stuff', style={'textAlign': 'center'}),
+    html.H1(children='Modiview', style={'textAlign': 'center'}),
     f"Enter the read number (1-{read_count}): ",
     dcc.Input(
         id='read_number',
