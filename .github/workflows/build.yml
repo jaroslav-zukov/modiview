@@ -1,0 +1,19 @@
+name: Create env and Test
+on:
+    push:
+        branches:
+        - main
+    pull_request:
+
+jobs:
+  setup-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: modiview
+          environment-file: environment.yml
+      - name: Run tests
+        run: |
+          python -m unittest discover tests
