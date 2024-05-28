@@ -1,5 +1,7 @@
 # Modiview
 
+[![Create env and Test](https://github.com/jaroslav-zukov/modiview/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/jaroslav-zukov/modiview/actions/workflows/build.yml)
+
 ### Prerequisites
 Conda is installed on the local machine. You are running commands in the same directory as README file. 
 
