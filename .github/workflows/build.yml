@@ -12,12 +12,8 @@ jobs:
         with:
           activate-environment: modiview
           environment-file: environment.yml
-      - name: Activate environment
+      - name: Activate environment and test
         run: |
-          eval "$(conda shell.bash hook)"
+#          eval "$(conda shell.bash hook)"
           conda activate modiview
-          conda list
-          python -m unittest discover tests
-      - name: Run tests
-        run: |
           python -m unittest discover tests
