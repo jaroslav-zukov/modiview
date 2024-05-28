@@ -1,4 +1,4 @@
-# modiview
+# Modiview
 
 ### Prerequisites
 Conda is installed on the local machine. You are running commands in the same directory as README file. 

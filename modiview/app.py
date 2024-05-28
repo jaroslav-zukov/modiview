@@ -1,5 +1,6 @@
 import json
 import math
+import os
 
 import dash
 import dash_bio as dashbio
@@ -11,7 +12,8 @@ from dash import Dash, html, dcc, callback, Output, Input, no_update
 import modifications
 from bam_handler import BAMFileHandler
 
-bam_handler = BAMFileHandler("/Users/jaroslav/Projects/modiview/calls.bam")
+bam_file_relative_path = os.path.join(os.path.dirname(__file__), './../calls.bam')
+bam_handler = BAMFileHandler(bam_file_relative_path)
 
 read_count = bam_handler.get_read_count()
 initial_fasta_sequence = bam_handler.get_fasta_sequence(1)
