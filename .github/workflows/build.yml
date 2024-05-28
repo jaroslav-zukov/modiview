@@ -11,7 +11,10 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v3
         with:
           environment-file: environment.yml
-          activate-environment: modiview
+      - name: Activate environment
+        run: |
+          eval "$(conda shell.bash hook)"
+          conda activate modiview
       - name: Run tests
         run: |
           python -m unittest discover tests
