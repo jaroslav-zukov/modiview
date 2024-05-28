@@ -1,0 +1,13 @@
+name: modiview
+channels:
+  - defaults
+  - bioconda
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pandas
+  - numpy
+  - dash
+  - dash-bio
+  - plotly
+  - pysam
