@@ -1,6 +1,6 @@
 def calculate_modification_probabilities(read):
     encoded_modification_probabilities = read.get_tag("ML")
-    return [i / 255 for i in encoded_modification_probabilities]
+    return [p / 255 for p in encoded_modification_probabilities]
 
 
 def calculate_nucleotide_positions(read, nucleotide):
@@ -24,25 +24,24 @@ def calculate_absolute_modification_positions(relative_positions, nucleotide_pos
         if i == 0:
             absolute_nucleotide_positions.append(relative_positions[i])
         else:
-            absolute_nucleotide_positions.append(relative_positions[i - 1] + 1 + relative_positions[i])
+            absolute_nucleotide_positions.append(absolute_nucleotide_positions[i - 1] + 1 + relative_positions[i])
     return [nucleotide_positions[i] for i in absolute_nucleotide_positions]
 
 
 def get_modifications(read):
-    modification_relative_position_map = get_modification_relative_positions_map(read)
+    modification_relative_positions_map = get_modification_relative_positions_map(read)
     modification_probabilities = calculate_modification_probabilities(read)
 
     modification_position_error_map = {}
     counter = 0
-    for modification, relative_position in modification_relative_position_map.items():
+    for modification, relative_positions in modification_relative_positions_map.items():
         nucleotide_positions = calculate_nucleotide_positions(read, modification[0])
-        absolute_positions = calculate_absolute_modification_positions(relative_position, nucleotide_positions)
+        absolute_positions = calculate_absolute_modification_positions(relative_positions, nucleotide_positions)
 
-        modification_position_error_map[modification] = (
-            zip(
-                absolute_positions,
-                modification_probabilities[counter: len(absolute_positions)]
-            )
+        modification_position_error_map[modification] = zip(
+            absolute_positions,
+            modification_probabilities[counter: counter + len(absolute_positions)]
         )
+        counter += len(absolute_positions)
 
     return modification_position_error_map
