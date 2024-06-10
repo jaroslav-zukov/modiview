@@ -61,10 +61,28 @@ app.layout = html.Div([
         showid=False,
         colorscale='nucleotide',
         showlabel=False,
+        ticksteps=1000,
     ),
     dcc.Graph(id='modifications-plot'),
     dcc.Store(id='zoom-range', data={'start': 0, 'end': 256}),
-])
+    dcc.Upload(
+        id='upload-image',
+        children=html.Div([
+            'Drag and Drop or ',
+            html.A('Select Files')
+        ]),
+        style={
+            'width': '99%',
+            'height': '60px',
+            'lineHeight': '60px',
+            'borderWidth': '1px',
+            'borderStyle': 'dashed',
+            'borderRadius': '5px',
+            'textAlign': 'center',
+            'margin': '10px'
+        },
+        multiple=True
+    )])
 
 
 @callback(
