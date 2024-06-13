@@ -86,6 +86,7 @@ app.layout = html.Div([
     ),
     dcc.Store(id='uploaded-file-path', data='/Users/jaroslav/Projects/modiview/calls.bam'),
     dcc.Store(id='previous-file-path'),
+    html.Button('Clear', id='clear-button'),
 ])
 
 
@@ -125,14 +126,21 @@ def update_output(value, file_path):
 
 
 @app.callback(
-    [Output('read_number', 'value'),
-     Output('upload-file', 'contents')],
-    [Input('uploaded-file-path', 'data')]
+    Output('read_number', 'value'),
+    Input('uploaded-file-path', 'data')
 )
 def reset_after_upload(file_path):
     if file_path is not None:
-        return 1, None
+        return 1
     return no_update
+
+
+@app.callback(
+    Output('upload-file', 'contents'),
+    Input('clear-button', 'n_clicks')
+)
+def clear_upload(n_clicks):
+    return None
 
 
 @app.callback(
