@@ -1,22 +1,19 @@
+import base64
+import io
 import json
 import math
 import os
+import tempfile
 
 import dash
 import dash_bio as dashbio
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from dash import Dash, html, dcc, callback, Output, Input, no_update
+from dash import Dash, html, dcc, Output, Input, no_update, State
 
 import modifications
 from bam_handler import BAMFileHandler
-
-bam_file_relative_path = os.path.join(os.path.dirname(__file__), './../calls.bam')
-bam_handler = BAMFileHandler(bam_file_relative_path)
-
-read_count = bam_handler.get_read_count()
-initial_fasta_sequence = bam_handler.get_fasta_sequence(1)
 
 modifications_dict = {
     "C+m?": "5-Methylcytosine",
@@ -24,7 +21,11 @@ modifications_dict = {
 }
 reverse_modifications_dict = {v: k for k, v in modifications_dict.items()}
 
-initial_modifications_short = list(modifications.get_modifications(bam_handler.get_read(1)).keys())
+bam_handler_local = BAMFileHandler('/Users/jaroslav/Projects/modiview/calls.bam')
+
+read_count = bam_handler_local.get_read_count()
+initial_fasta_sequence = bam_handler_local.get_fasta_sequence(1)
+initial_modifications_short = list(modifications.get_modifications(bam_handler_local.get_read(1)).keys())
 initial_modifications_full = [modifications_dict[mod] for mod in initial_modifications_short]
 
 app = Dash(__name__)
@@ -66,7 +67,7 @@ app.layout = html.Div([
     dcc.Graph(id='modifications-plot'),
     dcc.Store(id='zoom-range', data={'start': 0, 'end': 256}),
     dcc.Upload(
-        id='upload-image',
+        id='upload-file',
         children=html.Div([
             'Drag and Drop or ',
             html.A('Select Files')
@@ -82,21 +83,26 @@ app.layout = html.Div([
             'margin': '10px'
         },
         multiple=True
-    )])
+    ),
+    dcc.Store(id='uploaded-file-path', data='/Users/jaroslav/Projects/modiview/calls.bam'),
+    dcc.Store(id='previous-file-path'),
+])
 
 
-@callback(
+@app.callback(
     Output('zoom-range', 'data'),
     Input('alignment-viewer', 'eventDatum'),
-    Input('read_number', 'value')
+    Input('read_number', 'value'),
+    Input('uploaded-file-path', 'data')
 )
-def update_zoom_range(alignment_viewer_event, read_number):
+def update_zoom_range(alignment_viewer_event, read_number, file_path):
     if alignment_viewer_event is None:
         return dash.no_update
     parsed_event = json.loads(alignment_viewer_event)
     if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
         start = math.ceil(parsed_event['xStart'])
         end = math.floor(parsed_event['xEnd'])
+        bam_handler = BAMFileHandler(file_path)
         read = bam_handler.get_read(read_number)
         sequence = read.query_sequence
         if start < 0 or end > max(len(sequence), 256):
@@ -106,27 +112,48 @@ def update_zoom_range(alignment_viewer_event, read_number):
         return dash.no_update
 
 
-@callback(
+@app.callback(
     Output('read-num-output-container', 'children'),
-    Input('read_number', 'value'))
-def update_output(value):
+    Input('read_number', 'value'),
+    Input('uploaded-file-path', 'data')
+)
+def update_output(value, file_path):
+    if file_path is None:
+        return 'File is not uploaded yet.'
+    bam_handler = BAMFileHandler(file_path)
     return 'You have selected read number {} with read_id {}'.format(value, bam_handler.get_read_id(value))
 
 
-@callback(
+@app.callback(
+    [Output('read_number', 'value'),
+     Output('upload-file', 'contents')],
+    [Input('uploaded-file-path', 'data')]
+)
+def reset_after_upload(file_path):
+    if file_path is not None:
+        return 1, None
+    return no_update
+
+
+@app.callback(
     Output('alignment-viewer', 'data'),
-    Input('read_number', 'value'))
-def update_alignment_chart(value):
+    Input('read_number', 'value'),
+    Input('uploaded-file-path', 'data')
+)
+def update_alignment_chart(value, file_path):
+    bam_handler = BAMFileHandler(file_path)
     return bam_handler.get_fasta_sequence(value)
 
 
-@callback(
+@app.callback(
     Output('modifications-plot', 'figure'),
     Input('zoom-range', 'data'),
     Input('read_number', 'value'),
     Input('mod_dropdown', 'value'),
+    Input('uploaded-file-path', 'data')
 )
-def update_modifications_plot(zoom_range, read_number, mods_selected):
+def update_modifications_plot(zoom_range, read_number, mods_selected, file_path):
+    bam_handler = BAMFileHandler(file_path)
     read = bam_handler.get_read(read_number)
     sequence = read.query_sequence
 
@@ -171,6 +198,40 @@ def update_modifications_plot(zoom_range, read_number, mods_selected):
     )
 
     return fig
+
+
+@app.callback(
+    Output('uploaded-file-path', 'data'),
+    Input('upload-file', 'contents'),
+    State('upload-file', 'filename'),
+    State('previous-file-path', 'data')
+)
+def handle_upload(contents, filename, previous_file_path):
+    if contents is not None:
+        content_type, content_string = contents[0].split(',')
+        decoded = base64.b64decode(content_string)
+        try:
+            if 'bam' in filename[0]:
+                if previous_file_path is not None and os.path.exists(previous_file_path):
+                    os.remove(previous_file_path)
+                bam_file = io.BytesIO(decoded)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".bam") as fp:
+                    fp.write(bam_file.read())
+                    return fp.name
+        except Exception as e:
+            print(e)
+            return html.Div([
+                'There was an error processing this file.'
+            ])
+    return no_update
+
+
+@app.callback(
+    Output('previous-file-path', 'data'),
+    Input('uploaded-file-path', 'data')
+)
+def update_previous_file_path(new_file_path):
+    return new_file_path
 
 
 def generate_modification_list(methylation_positions, nucleotides_shown):
