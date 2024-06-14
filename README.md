@@ -19,8 +19,8 @@ conda activate modiview
 python modiview/app.py
 ```
 
-### Current limitations
-There aren't all possible modifications supported. The application is in the development phase.
+### Usage
+Try uploading the `calls.bam` file from the repo or your own file with C+h, C+m modifications.
 
 ### Future development
 - Add more modifications
