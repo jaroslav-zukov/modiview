@@ -97,6 +97,16 @@ app.layout = html.Div([
     Input('uploaded-file-path', 'data')
 )
 def update_zoom_range(alignment_viewer_event, read_number, file_path):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        return dash.no_update
+    else:
+        input_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if input_id == 'read_number':
+        return {'start': 0, 'end': 256}
+
     if alignment_viewer_event is None:
         return dash.no_update
     parsed_event = json.loads(alignment_viewer_event)
