@@ -18,3 +18,11 @@ conda activate modiview
 ```
 python modiview/app.py
 ```
+
+### Current limitations
+There aren't all possible modifications supported. The application is in the development phase.
+
+### Future development
+- Add more modifications
+- Add more tests
+- Possibility to add multiple bam files from different modifications calling models 
