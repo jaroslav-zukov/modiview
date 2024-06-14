@@ -73,7 +73,7 @@ app.layout = html.Div([
         },
         multiple=True
     ),
-    dcc.Store(id='uploaded-file-path', data='/Users/jaroslav/Projects/modiview/calls.bam'),
+    dcc.Store(id='uploaded-file-path'),
     dcc.Store(id='previous-file-path'),
 ])
 
