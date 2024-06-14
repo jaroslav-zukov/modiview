@@ -21,37 +21,26 @@ modifications_dict = {
 }
 reverse_modifications_dict = {v: k for k, v in modifications_dict.items()}
 
-bam_handler_local = BAMFileHandler('/Users/jaroslav/Projects/modiview/calls.bam')
-
-read_count = bam_handler_local.get_read_count()
-initial_fasta_sequence = bam_handler_local.get_fasta_sequence(1)
-initial_modifications_short = list(modifications.get_modifications(bam_handler_local.get_read(1)).keys())
-initial_modifications_full = [modifications_dict[mod] for mod in initial_modifications_short]
-
 app = Dash(__name__)
-
 app.layout = html.Div([
     html.H1(children='Modiview', style={'textAlign': 'center'}),
-    f"Enter the read number (1-{read_count}): ",
+    html.Div(id='read-num-span'),
     dcc.Input(
         id='read_number',
         type='number',
         min=1,
-        max=read_count,
         step=1,
         style={'textAlign': 'center', 'width': '5%'},
         value=1),
     html.Div(id='read-num-output-container'),
     "Select modifications:",
     dcc.Dropdown(
-        options=initial_modifications_full,
-        value=initial_modifications_full,
-        multi=True,
-        id='mod_dropdown'
+        id='mod_dropdown',
+        multi=True
     ),
     dashbio.AlignmentChart(
         id='alignment-viewer',
-        data=initial_fasta_sequence,
+        data='>read1\nGATTACA',
         height=200,
         tilewidth=10,
         tileheight=15,
@@ -90,6 +79,33 @@ app.layout = html.Div([
 
 
 @app.callback(
+    [Output('read-num-span', 'children'), Output('read_number', 'max')],
+    Input('uploaded-file-path', 'data')
+)
+def update_read_num_span(file_path):
+    if file_path is None:
+        return 'No file uploaded yet.', no_update
+    bam_handler = BAMFileHandler(file_path)
+    read_count = bam_handler.get_read_count()
+    return f"Enter the read number (1-{read_count}): ", read_count
+
+
+@app.callback(
+    [Output('mod_dropdown', 'options'), Output('mod_dropdown', 'value')],
+    [Input('read_number', 'value'), Input('uploaded-file-path', 'data')]
+)
+def update_mod_dropdown(read_number, file_path):
+    if file_path is None:
+        return no_update
+    bam_handler = BAMFileHandler(file_path)
+    read = bam_handler.get_read(read_number)
+    mods_short = list(modifications.get_modifications(read).keys())
+    mods_full = [modifications_dict[mod] for mod in mods_short]
+
+    return mods_full, mods_full
+
+
+@app.callback(
     [
         Output('read_number', 'value'),
         Output('zoom-range', 'data')
@@ -104,7 +120,7 @@ def handle_zoom_and_read_number(file_path, alignment_viewer_event, read_number):
     ctx = dash.callback_context
 
     if not ctx.triggered:
-        return dash.no_update
+        return no_update
     else:
         input_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -112,7 +128,7 @@ def handle_zoom_and_read_number(file_path, alignment_viewer_event, read_number):
         return 1, {'start': 0, 'end': 256}
     elif input_id == 'alignment-viewer':
         if alignment_viewer_event is None:
-            return dash.no_update
+            return no_update
         parsed_event = json.loads(alignment_viewer_event)
         if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
             start = math.ceil(parsed_event['xStart'])
@@ -122,13 +138,13 @@ def handle_zoom_and_read_number(file_path, alignment_viewer_event, read_number):
             sequence = read.query_sequence
             if start < 0 or end > max(len(sequence), 256):
                 return no_update
-            return dash.no_update, {'start': start, 'end': end}
+            return no_update, {'start': start, 'end': end}
         else:
-            return dash.no_update
+            return no_update
     elif input_id == 'read_number':
-        return dash.no_update, {'start': 0, 'end': 256}
+        return no_update, {'start': 0, 'end': 256}
     else:
-        return dash.no_update
+        return no_update
 
 
 @app.callback(
@@ -161,6 +177,9 @@ def update_alignment_chart(value, file_path):
     Input('uploaded-file-path', 'data')
 )
 def update_modifications_plot(zoom_range, read_number, mods_selected, file_path):
+    if mods_selected is None:
+        return no_update
+    
     bam_handler = BAMFileHandler(file_path)
     read = bam_handler.get_read(read_number)
     sequence = read.query_sequence
