@@ -86,17 +86,21 @@ app.layout = html.Div([
     ),
     dcc.Store(id='uploaded-file-path', data='/Users/jaroslav/Projects/modiview/calls.bam'),
     dcc.Store(id='previous-file-path'),
-    html.Button('Clear', id='clear-button'),
 ])
 
 
 @app.callback(
-    Output('zoom-range', 'data'),
-    Input('alignment-viewer', 'eventDatum'),
-    Input('read_number', 'value'),
-    Input('uploaded-file-path', 'data')
+    [
+        Output('read_number', 'value'),
+        Output('zoom-range', 'data')
+    ],
+    [
+        Input('uploaded-file-path', 'data'),
+        Input('alignment-viewer', 'eventDatum'),
+        Input('read_number', 'value')
+    ]
 )
-def update_zoom_range(alignment_viewer_event, read_number, file_path):
+def handle_zoom_and_read_number(file_path, alignment_viewer_event, read_number):
     ctx = dash.callback_context
 
     if not ctx.triggered:
@@ -104,21 +108,25 @@ def update_zoom_range(alignment_viewer_event, read_number, file_path):
     else:
         input_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if input_id == 'read_number':
-        return {'start': 0, 'end': 256}
-
-    if alignment_viewer_event is None:
-        return dash.no_update
-    parsed_event = json.loads(alignment_viewer_event)
-    if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
-        start = math.ceil(parsed_event['xStart'])
-        end = math.floor(parsed_event['xEnd'])
-        bam_handler = BAMFileHandler(file_path)
-        read = bam_handler.get_read(read_number)
-        sequence = read.query_sequence
-        if start < 0 or end > max(len(sequence), 256):
-            return no_update
-        return {'start': start, 'end': end}
+    if input_id == 'uploaded-file-path':
+        return 1, {'start': 0, 'end': 256}
+    elif input_id == 'alignment-viewer':
+        if alignment_viewer_event is None:
+            return dash.no_update
+        parsed_event = json.loads(alignment_viewer_event)
+        if 'eventType' in parsed_event and parsed_event['eventType'] == 'Zoom':
+            start = math.ceil(parsed_event['xStart'])
+            end = math.floor(parsed_event['xEnd'])
+            bam_handler = BAMFileHandler(file_path)
+            read = bam_handler.get_read(read_number)
+            sequence = read.query_sequence
+            if start < 0 or end > max(len(sequence), 256):
+                return no_update
+            return dash.no_update, {'start': start, 'end': end}
+        else:
+            return dash.no_update
+    elif input_id == 'read_number':
+        return dash.no_update, {'start': 0, 'end': 256}
     else:
         return dash.no_update
 
@@ -133,24 +141,6 @@ def update_output(value, file_path):
         return 'File is not uploaded yet.'
     bam_handler = BAMFileHandler(file_path)
     return 'You have selected read number {} with read_id {}'.format(value, bam_handler.get_read_id(value))
-
-
-@app.callback(
-    Output('read_number', 'value'),
-    Input('uploaded-file-path', 'data')
-)
-def reset_after_upload(file_path):
-    if file_path is not None:
-        return 1
-    return no_update
-
-
-@app.callback(
-    Output('upload-file', 'contents'),
-    Input('clear-button', 'n_clicks')
-)
-def clear_upload(n_clicks):
-    return None
 
 
 @app.callback(
@@ -219,7 +209,11 @@ def update_modifications_plot(zoom_range, read_number, mods_selected, file_path)
 
 
 @app.callback(
-    Output('uploaded-file-path', 'data'),
+    [
+        Output('uploaded-file-path', 'data'),
+        Output('upload-file', 'contents'),
+        Output('upload-file', 'filename')
+    ],
     Input('upload-file', 'contents'),
     State('upload-file', 'filename'),
     State('previous-file-path', 'data')
@@ -228,19 +222,13 @@ def handle_upload(contents, filename, previous_file_path):
     if contents is not None:
         content_type, content_string = contents[0].split(',')
         decoded = base64.b64decode(content_string)
-        try:
-            if 'bam' in filename[0]:
-                if previous_file_path is not None and os.path.exists(previous_file_path):
-                    os.remove(previous_file_path)
-                bam_file = io.BytesIO(decoded)
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".bam") as fp:
-                    fp.write(bam_file.read())
-                    return fp.name
-        except Exception as e:
-            print(e)
-            return html.Div([
-                'There was an error processing this file.'
-            ])
+        if 'bam' in filename[0]:
+            if previous_file_path is not None and os.path.exists(previous_file_path):
+                os.remove(previous_file_path)
+            bam_file = io.BytesIO(decoded)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".bam") as fp:
+                fp.write(bam_file.read())
+                return fp.name, None, None
     return no_update
 
 
