@@ -213,8 +213,7 @@ def update_modifications_plot(zoom_range, read_number, mods_selected, file_path)
         )
 
     fig.update_layout(
-        autosize=False,
-        width=2605,
+        autosize=True,
         height=300,
         yaxis=dict(range=[0, 1]),
         legend=dict(
