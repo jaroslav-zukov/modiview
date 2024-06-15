@@ -12,7 +12,7 @@ def get_modification_relative_positions_map(read):
     modification_relative_positions_map = {}
     for modification in modifications:
         parts = modification.split(",")
-        modification_type = parts[0]
+        modification_type = parts[0].rstrip('.?')
         positions = [int(p) for p in parts[1:]]
         modification_relative_positions_map[modification_type] = positions
     return modification_relative_positions_map

@@ -16,12 +16,10 @@ import modifications
 from bam_handler import BAMFileHandler
 
 modifications_dict = {
-    "C+m?": "5-Methylcytosine",
-    "C+m.": "5-Methylcytosine",
-    "C+h?": "5-Hydroxymethylcytosine",
-    "C+h.": "5-Hydroxymethylcytosine",
-    "C+21839.": "N(4)-methylcytosine",
-    "A+a.": " 6-Methyladenine",
+    "C+m": "5-Methylcytosine",
+    "C+h": "5-Hydroxymethylcytosine",
+    "C+21839": "N(4)-methylcytosine",
+    "A+a": " 6-Methyladenine",
 }
 reverse_modifications_dict = {v: k for k, v in modifications_dict.items()}
 
@@ -216,7 +214,7 @@ def update_modifications_plot(zoom_range, read_number, mods_selected, file_path)
 
     fig.update_layout(
         autosize=False,
-        width=2605,
+        width=1500,
         height=300,
         yaxis=dict(range=[0, 1]),
         legend=dict(
