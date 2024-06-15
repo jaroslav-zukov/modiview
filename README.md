@@ -23,6 +23,7 @@ python modiview/app.py
 - 5-Methylcytosine
 - 5-Hydroxymethylcytosine
 - N(4)-methylcytosine
+- 6-Methyladenine
 
 ### Usage
 Try uploading the `calls.bam` file from the repo or your own file with supported modifications.

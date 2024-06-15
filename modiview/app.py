@@ -21,6 +21,7 @@ modifications_dict = {
     "C+h?": "5-Hydroxymethylcytosine",
     "C+h.": "5-Hydroxymethylcytosine",
     "C+21839.": "N(4)-methylcytosine",
+    "A+a.": " 6-Methyladenine",
 }
 reverse_modifications_dict = {v: k for k, v in modifications_dict.items()}
 
