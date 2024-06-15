@@ -6,7 +6,7 @@ import os
 import tempfile
 
 import dash
-import dash_bio as dashbio
+import dash_bio
 import pandas as pd
 import plotly.graph_objects as go
 from dash import Dash, html, dcc, Output, Input, no_update, State
@@ -31,7 +31,7 @@ app.layout = html.Div([
         id='mod_dropdown',
         multi=True
     ),
-    dashbio.AlignmentChart(
+    dash_bio.AlignmentChart(
         id='alignment-viewer',
         data='>read1\nGATTACA',
         height=200,
@@ -72,7 +72,10 @@ app.layout = html.Div([
 
 
 @app.callback(
-    [Output('read-num-span', 'children'), Output('read_number', 'max')],
+    [
+        Output('read-num-span', 'children'),
+        Output('read_number', 'max')
+    ],
     Input('uploaded-file-path', 'data')
 )
 def update_read_num_span(file_path):
@@ -84,8 +87,14 @@ def update_read_num_span(file_path):
 
 
 @app.callback(
-    [Output('mod_dropdown', 'options'), Output('mod_dropdown', 'value')],
-    [Input('read_number', 'value'), Input('uploaded-file-path', 'data')]
+    [
+        Output('mod_dropdown', 'options'),
+        Output('mod_dropdown', 'value')
+    ],
+    [
+        Input('read_number', 'value'),
+        Input('uploaded-file-path', 'data')
+    ]
 )
 def update_mod_dropdown(read_number, file_path):
     if file_path is None:
