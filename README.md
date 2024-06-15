@@ -19,10 +19,15 @@ conda activate modiview
 python modiview/app.py
 ```
 
+### Supported modifications
+- 5-Methylcytosine
+- 5-Hydroxymethylcytosine
+- N(4)-methylcytosine
+
 ### Usage
-Try uploading the `calls.bam` file from the repo or your own file with C+h, C+m modifications.
+Try uploading the `calls.bam` file from the repo or your own file with supported modifications.
 
 ### Future development
 - Add more modifications
 - Add more tests
-- Possibility to add multiple bam files from different modifications calling models 
+- Possibility to add multiple bam files from different modifications calling models on the same file
