@@ -1,3 +1,26 @@
+import numpy as np
+
+modifications_dict = {
+    "C+m": "5-Methylcytosine",
+    "C+h": "5-Hydroxymethylcytosine",
+    "C+21839": "N(4)-methylcytosine",
+    "A+a": " 6-Methyladenine",
+}
+reverse_modifications_dict = {v: k for k, v in modifications_dict.items()}
+
+
+def generate_modification_list(methylation_positions, nucleotides_shown):
+    result = np.zeros(nucleotides_shown)
+    for position, probability in methylation_positions:
+        result[position] += probability
+    return result.tolist()
+
+
+def list_modifications(read):
+    mods_short = list(get_modifications(read).keys())
+    return [modifications_dict[mod] for mod in mods_short]
+
+
 def calculate_modification_probabilities(read):
     encoded_modification_probabilities = read.get_tag("ML")
     return [p / 255 for p in encoded_modification_probabilities]
@@ -45,3 +68,11 @@ def get_modifications(read):
         counter += len(absolute_positions)
 
     return modification_position_error_map
+
+
+def generate_plot_data(modification, read, nucleotides_shown):
+    mods = get_modifications(read)
+    return generate_modification_list(
+        mods[reverse_modifications_dict[modification]],
+        nucleotides_shown
+    )

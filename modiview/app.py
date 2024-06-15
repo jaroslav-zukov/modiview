@@ -7,21 +7,12 @@ import tempfile
 
 import dash
 import dash_bio as dashbio
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from dash import Dash, html, dcc, Output, Input, no_update, State
 
 import modifications
 from bam_handler import BAMFileHandler
-
-modifications_dict = {
-    "C+m": "5-Methylcytosine",
-    "C+h": "5-Hydroxymethylcytosine",
-    "C+21839": "N(4)-methylcytosine",
-    "A+a": " 6-Methyladenine",
-}
-reverse_modifications_dict = {v: k for k, v in modifications_dict.items()}
 
 app = Dash(__name__)
 app.layout = html.Div([
@@ -101,10 +92,9 @@ def update_mod_dropdown(read_number, file_path):
         return no_update
     bam_handler = BAMFileHandler(file_path)
     read = bam_handler.get_read(read_number)
-    mods_short = list(modifications.get_modifications(read).keys())
-    mods_full = [modifications_dict[mod] for mod in mods_short]
+    mods = modifications.list_modifications(read)
 
-    return mods_full, mods_full
+    return mods, mods
 
 
 @app.callback(
@@ -181,27 +171,19 @@ def update_alignment_chart(value, file_path):
 def update_modifications_plot(zoom_range, read_number, mods_selected, file_path):
     if mods_selected is None:
         return no_update
-    
+
     bam_handler = BAMFileHandler(file_path)
     read = bam_handler.get_read(read_number)
-    sequence = read.query_sequence
 
-    nucleotides_shown = max(len(sequence), 256)
+    nucleotides_shown = max(len(read.query_sequence), 256)
     start = zoom_range['start']
     end = zoom_range['end']
 
     fig = go.Figure()
-    mods = modifications.get_modifications(read)
-    x_values = list(range(start + 1, end + 1))
-
     for modification in mods_selected:
-        y_values = generate_modification_list(
-            mods[reverse_modifications_dict[modification]],
-            nucleotides_shown
-        )[start:end]
         df = pd.DataFrame({
-            'x': x_values,
-            'y': y_values,
+            'x': list(range(start + 1, end + 1)),
+            'y': modifications.generate_plot_data(modification, read, nucleotides_shown)[start:end],
         })
         fig.add_trace(
             go.Scatter(
@@ -258,13 +240,6 @@ def handle_upload(contents, filename, previous_file_path):
 )
 def update_previous_file_path(new_file_path):
     return new_file_path
-
-
-def generate_modification_list(methylation_positions, nucleotides_shown):
-    result = np.zeros(nucleotides_shown)
-    for position, probability in methylation_positions:
-        result[position] += probability
-    return result.tolist()
 
 
 if __name__ == '__main__':
