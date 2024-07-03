@@ -27,7 +27,11 @@ def calculate_modification_probabilities(read):
 
 
 def calculate_nucleotide_positions(read, nucleotide):
-    return [i for i in range(len(read.query_sequence)) if read.query_sequence[i] == nucleotide]
+    return [
+        i
+        for i in range(len(read.query_sequence))
+        if read.query_sequence[i] == nucleotide
+    ]
 
 
 def get_modification_relative_positions_map(read):
@@ -35,7 +39,7 @@ def get_modification_relative_positions_map(read):
     modification_relative_positions_map = {}
     for modification in modifications:
         parts = modification.split(",")
-        modification_type = parts[0].rstrip('.?')
+        modification_type = parts[0].rstrip(".?")
         positions = [int(p) for p in parts[1:]]
         modification_relative_positions_map[modification_type] = positions
     return modification_relative_positions_map
@@ -47,7 +51,9 @@ def calculate_absolute_modification_positions(relative_positions, nucleotide_pos
         if i == 0:
             absolute_nucleotide_positions.append(relative_positions[i])
         else:
-            absolute_nucleotide_positions.append(absolute_nucleotide_positions[i - 1] + 1 + relative_positions[i])
+            absolute_nucleotide_positions.append(
+                absolute_nucleotide_positions[i - 1] + 1 + relative_positions[i]
+            )
     return [nucleotide_positions[i] for i in absolute_nucleotide_positions]
 
 
@@ -59,11 +65,13 @@ def get_modifications(read):
     counter = 0
     for modification, relative_positions in modification_relative_positions_map.items():
         nucleotide_positions = calculate_nucleotide_positions(read, modification[0])
-        absolute_positions = calculate_absolute_modification_positions(relative_positions, nucleotide_positions)
+        absolute_positions = calculate_absolute_modification_positions(
+            relative_positions, nucleotide_positions
+        )
 
         modification_position_error_map[modification] = zip(
             absolute_positions,
-            modification_probabilities[counter: counter + len(absolute_positions)]
+            modification_probabilities[counter : counter + len(absolute_positions)],
         )
         counter += len(absolute_positions)
 
@@ -73,6 +81,5 @@ def get_modifications(read):
 def generate_plot_data(modification, read, nucleotides_shown):
     mods = get_modifications(read)
     return generate_modification_list(
-        mods[reverse_modifications_dict[modification]],
-        nucleotides_shown
+        mods[reverse_modifications_dict[modification]], nucleotides_shown
     )
