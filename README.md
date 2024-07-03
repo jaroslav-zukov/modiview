@@ -27,7 +27,14 @@ python modiview/app.py
 - 6-Methyladenine
 
 ### Usage
-Try uploading the `calls.bam` file from the repo or your own file with supported modifications.
+Try uploading the `calls.bam` file from the repo attachments or your own file with supported modifications.
+
+### Preview of the application
+Preview the whole read
+![Preview](attachments/preview_whole.png)
+Zoom in on specific read region
+![Zoom](attachments/preview_zoomed.png)
+
 
 ### Future development
 - Add more modifications
